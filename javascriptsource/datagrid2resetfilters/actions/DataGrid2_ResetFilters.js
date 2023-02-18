@@ -12,13 +12,13 @@ import { Big } from "big.js";
 // END EXTRA CODE
 
 /**
- * @param {string} name - The name of the target datagrid2
+ * @param {string} className - The class set on the datagrid 2
  * @returns {Promise.<void>}
  */
-export async function DataGrid2_ResetFilters(name) {
+export async function DataGrid2_ResetFilters(className) {
 	// BEGIN USER CODE
-	const filters = document.querySelectorAll('.mx-name-' + name + ' .filter .form-control');
-
+	const filters = document.querySelectorAll('.' + className + ' .filter-container .form-control, .' + className + ' .dropdown-container .form-control');
+	debugger;
 	if (filters.length == 0) {
 		return Promise.resolve();
 	}
@@ -51,7 +51,7 @@ export async function DataGrid2_ResetFilters(name) {
 			
 			if (ctrls) {
 				// Get all checked entries
-				const checked = document.querySelectorAll('#' + ctrls + ' filter[checked]');
+				const checked = document.querySelectorAll('#' + ctrls + ' input[checked]');
 
 				checked.forEach((check) => {
 					const props = Object.keys(check.parentElement);
