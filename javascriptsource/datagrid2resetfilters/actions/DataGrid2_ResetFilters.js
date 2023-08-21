@@ -18,15 +18,16 @@ import { Big } from "big.js";
 export async function DataGrid2_ResetFilters(className) {
 	// BEGIN USER CODE
 	const filters = document.querySelectorAll('.' + className + ' .filter-container .form-control, .' + className + ' .dropdown-container .form-control');
-	debugger;
 	if (filters.length == 0) {
 		return Promise.resolve();
 	}
 
 	filters.forEach((filter) => {
+		debugger;
 		const props = Object.keys(filter);
-		let ctrls   = filter.getAttribute('aria-controls');
-		let react   = null;
+		let ctrls = filter.getAttribute('aria-controls');
+		let react = null;
+		const dropdownFilter = filter.parentElement.classList.contains("dropdown-container");
 
 		// Reset value
 		filter.value = '';
@@ -39,19 +40,21 @@ export async function DataGrid2_ResetFilters(className) {
 			}
 		}
 
-		// Trigger the react onchange event
-		if (react && filter[react].onChange) {
-			filter[react].onChange({target: filter});
-		}
 
-		// Reset multi-select dropdown filters
-		if (react && filter[react].onClick) {
+
+		// Reset select dropdown filters
+		if (react && filter[react].onClick && dropdownFilter) {
 			// Open the dropdown list
 			filter[react].onClick();
-			
-			if (ctrls) {
+
+			const dropdown = document.querySelector('#' + ctrls);
+			const multiSelect = dropdown.querySelector('input') !== null;
+
+			if (multiSelect) {
+				// Handle multi-select dropdowns
+				
 				// Get all checked entries
-				const checked = document.querySelectorAll('#' + ctrls + ' input[checked]');
+				const checked = dropdown.querySelectorAll('input[checked]');
 
 				checked.forEach((check) => {
 					const props = Object.keys(check.parentElement);
@@ -59,25 +62,34 @@ export async function DataGrid2_ResetFilters(className) {
 					// Uncheck the entry
 					check.removeAttribute('checked');
 
-					for (let i = 0; i < props.length; i++) {
-						if (props[i].includes('__reactProps')) {
-							react = props[i];
-							break;
-						}
-					}
-
 					if (react) {
 						check.parentElement[react].onClick({
 							target: check.parentElement,
-							preventDefault: function() {},
-							stopPropagation: function() {}
+							preventDefault: function() { },
+							stopPropagation: function() { }
 						});
 					}
 				});
+				// Close the dropdown menu
+				filter[react].onClick();
+			} else {
+				// Handle single-select dropdowns
+				const firstOption = dropdown.querySelector("li:first-child");
+				if (firstOption) {
+					if (react) {
+						firstOption[react].onClick({
+							target: firstOption,
+							preventDefault: function() { },
+							stopPropagation: function() { }
+						});
+					}
+				}
 			}
-			
-			// Close the dropdown menu
-			filter[react].onClick();
+		}
+
+		// Trigger the react onchange event
+		if (react && filter[react].onChange) {
+			filter[react].onChange({ target: filter });
 		}
 	});
 
