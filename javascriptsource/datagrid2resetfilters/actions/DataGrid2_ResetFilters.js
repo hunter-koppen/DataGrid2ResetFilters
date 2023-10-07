@@ -17,81 +17,99 @@ import { Big } from "big.js";
  */
 export async function DataGrid2_ResetFilters(className) {
 	// BEGIN USER CODE
+	// First we find all the datagrid 2 filters.
 	const filters = document.querySelectorAll('.' + className + ' .filter-container .form-control, .' + className + ' .dropdown-container .form-control');
 	if (filters.length == 0) {
 		return Promise.resolve();
 	}
 
-	filters.forEach((filter) => {
-		debugger;
-		const props = Object.keys(filter);
-		let ctrls = filter.getAttribute('aria-controls');
-		let react = null;
-		const dropdownFilter = filter.parentElement.classList.contains("dropdown-container");
+	// Then we define the function that will reset a filter
+	async function resetFilter(filter) {
+		return new Promise(async (resolve) => {
+			const props = Object.keys(filter);
+			let ctrls = filter.getAttribute('aria-controls');
+			let react = null;
+			const dropdownFilter = filter.parentElement.classList.contains("dropdown-container");
 
-		// Reset value
-		filter.value = '';
+			// Reset value
+			filter.value = '';
 
-		// Find the __reactProps property of the current filter
-		for (let i = 0; i < props.length; i++) {
-			if (props[i].includes('__reactProps')) {
-				react = props[i];
-				break;
-			}
-		}
-
-
-
-		// Reset select dropdown filters
-		if (react && filter[react].onClick && dropdownFilter) {
-			// Open the dropdown list
-			filter[react].onClick();
-
-			const dropdown = document.querySelector('#' + ctrls);
-			const multiSelect = dropdown.querySelector('input') !== null;
-
-			if (multiSelect) {
-				// Handle multi-select dropdowns
-				
-				// Get all checked entries
-				const checked = dropdown.querySelectorAll('input[checked]');
-
-				checked.forEach((check) => {
-					const props = Object.keys(check.parentElement);
-
-					// Uncheck the entry
-					check.removeAttribute('checked');
-
-					if (react) {
-						check.parentElement[react].onClick({
-							target: check.parentElement,
-							preventDefault: function() { },
-							stopPropagation: function() { }
-						});
-					}
-				});
-				// Close the dropdown menu
-				filter[react].onClick();
-			} else {
-				// Handle single-select dropdowns
-				const firstOption = dropdown.querySelector("li:first-child");
-				if (firstOption) {
-					if (react) {
-						firstOption[react].onClick({
-							target: firstOption,
-							preventDefault: function() { },
-							stopPropagation: function() { }
-						});
-					}
+			// Find the __reactProps property of the current filter
+			for (let i = 0; i < props.length; i++) {
+				if (props[i].includes('__reactProps')) {
+					react = props[i];
+					break;
 				}
 			}
-		}
 
-		// Trigger the react onchange event
-		if (react && filter[react].onChange) {
-			filter[react].onChange({ target: filter });
-		}
+			// Reset select dropdown filters
+			if (react && filter[react].onClick && dropdownFilter) {
+				// Open the dropdown list
+				filter[react].onClick();
+
+				// Use a while loop to wait for the dropdown to become available
+				let dropdown = document.querySelector('#' + ctrls);
+				while (!dropdown) {
+					await new Promise(resolve => setTimeout(resolve, 1));
+					dropdown = document.querySelector('#' + ctrls);
+				}
+
+				const multiSelect = dropdown.querySelector('input') !== null;
+
+				if (multiSelect) {
+					// Handle multi-select dropdowns
+					// Get all checked entries
+					const checked = dropdown.querySelectorAll('input[checked]');
+
+					checked.forEach((check) => {
+						const props = Object.keys(check.parentElement);
+
+						// Uncheck the entry
+						check.removeAttribute('checked');
+
+						if (react) {
+							check.parentElement[react].onClick({
+								target: check.parentElement,
+								preventDefault: function() { },
+								stopPropagation: function() { }
+							});
+						}
+					});
+					// Close the dropdown menu
+					filter[react].onClick();
+				} else {
+					// Handle single-select dropdowns
+					const firstOption = dropdown.querySelector("li:first-child");
+					if (firstOption) {
+						if (react) {
+							firstOption[react].onClick({
+								target: firstOption,
+								preventDefault: function() { },
+								stopPropagation: function() { }
+							});
+						}
+					}
+				}
+
+				// Trigger the react onchange event
+				if (react && filter[react].onChange) {
+					filter[react].onChange({ target: filter });
+				}
+			}
+
+			resolve(); // Resolve the promise to indicate completion
+		});
+	}
+
+	// Convert NodeList to an array using Array.from()
+	const filterArray = Array.from(filters);
+
+	const resetPromises = filterArray.map(async (filter) => {
+		await resetFilter(filter);
 	});
+
+	// Wait for all promises to complete before returning
+	await Promise.all(resetPromises);
 
 	return Promise.resolve();
 	// END USER CODE
