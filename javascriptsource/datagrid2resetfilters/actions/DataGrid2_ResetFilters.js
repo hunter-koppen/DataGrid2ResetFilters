@@ -17,100 +17,179 @@ import { Big } from "big.js";
  */
 export async function DataGrid2_ResetFilters(className) {
 	// BEGIN USER CODE
-	// First we find all the datagrid 2 filters.
-	const filters = document.querySelectorAll('.' + className + ' .filter-container .form-control, .' + className + ' .dropdown-container .form-control');
-	if (filters.length == 0) {
-		return Promise.resolve();
-	}
+    // First we find all the datagrid 2 filters.
+    const filters = document.querySelectorAll(
+        "." +
+            className +
+            " .filter-container .form-control, ." +
+            className +
+            " .dropdown-container .form-control, ." +
+            className +
+            " .widget-dropdown-filter"
+    );
+    if (filters.length == 0) {
+        return Promise.resolve();
+    }
 
-	// Then we define the function that will reset a filter
-	async function resetFilter(filter) {
-		return new Promise(async (resolve) => {
-			const props = Object.keys(filter);
-			let ctrls = filter.getAttribute('aria-controls');
-			let react = null;
-			const dropdownFilter = filter.parentElement.classList.contains("dropdown-container");
+    // Then we define the function that will reset a filter
+    async function resetFilter(filter) {
+        return new Promise(async (resolve) => {
+            const props = Object.keys(filter);
+            let ctrls = filter.getAttribute("aria-controls");
+            let react = null;
+            const dropdownFilter =
+                filter.classList.contains("dropdown-triggerer");
 
-			// Reset value
-			filter.value = '';
+            const comboboxFilter = filter.classList.contains(
+                "widget-dropdown-filter"
+            );
 
-			// Find the __reactProps property of the current filter
-			for (let i = 0; i < props.length; i++) {
-				if (props[i].includes('__reactProps')) {
-					react = props[i];
-					break;
-				}
-			}
+            // Reset value
+            filter.value = "";
 
-			// Reset select dropdown filters
-			if (react && filter[react].onClick && dropdownFilter) {
-				// Open the dropdown list
-				filter[react].onClick();
+            // Find the __reactProps property of the current filter
+            for (let i = 0; i < props.length; i++) {
+                if (props[i].includes("__reactProps")) {
+                    react = props[i];
+                    break;
+                }
+            }
 
-				// Use a while loop to wait for the dropdown to become available
-				let dropdown = document.querySelector('#' + ctrls);
-				while (!dropdown) {
-					await new Promise(resolve => setTimeout(resolve, 1));
-					dropdown = document.querySelector('#' + ctrls);
-				}
+            // Reset select dropdown filters
+            if (react && filter[react].onClick && dropdownFilter) {
+                // Open the dropdown list
+                filter[react].onClick();
 
-				const multiSelect = dropdown.querySelector('input') !== null;
+                // Use a while loop to wait for the dropdown to become available
+                let dropdown = document.querySelector("#" + ctrls);
+                while (!dropdown) {
+                    await new Promise((resolve) => setTimeout(resolve, 1));
+                    dropdown = document.querySelector("#" + ctrls);
+                }
 
-				if (multiSelect) {
-					// Handle multi-select dropdowns
-					// Get all checked entries
-					const checked = dropdown.querySelectorAll('input[checked]');
+                try {
+                    const multiSelect =
+                        dropdown.querySelector("input") !== null;
 
-					checked.forEach((check) => {
-						const props = Object.keys(check.parentElement);
+                    if (multiSelect) {
+                        // Handle multi-select dropdowns
+                        // Get all checked entries
+                        const checked =
+                            dropdown.querySelectorAll("input[checked]");
 
-						// Uncheck the entry
-						check.removeAttribute('checked');
+                        checked.forEach((check) => {
+                            // Uncheck the entry
+                            check.removeAttribute("checked");
 
-						if (react) {
-							check.parentElement[react].onClick({
-								target: check.parentElement,
-								preventDefault: function() { },
-								stopPropagation: function() { }
-							});
-						}
-					});
-					// Close the dropdown menu
-					filter[react].onClick();
-				} else {
-					// Handle single-select dropdowns
-					const firstOption = dropdown.querySelector("li:first-child");
-					if (firstOption) {
-						if (react) {
-							firstOption[react].onClick({
-								target: firstOption,
-								preventDefault: function() { },
-								stopPropagation: function() { }
-							});
-						}
-					}
-				}
+                            if (react) {
+                                check.parentElement[react].onClick({
+                                    target: check.parentElement,
+                                    preventDefault: function () {},
+                                    stopPropagation: function () {},
+                                });
+                            }
+                        });
+                        // Close the dropdown menu
+                        filter[react].onClick();
+                    } else {
+                        // Handle single-select dropdowns
+                        const selected =
+                            dropdown.querySelector(".filter-selected");
 
-				// Trigger the react onchange event
-				if (react && filter[react].onChange) {
-					filter[react].onChange({ target: filter });
-				}
-			}
+                        if (selected) {
+                            selected.click();
+                            const emptyOption =
+                                dropdown.querySelector("li:first-child");
+                            if (emptyOption) {
+                                emptyOption.click();
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error during dropdown filter reset:", error);
+                }
+            }
 
-			resolve(); // Resolve the promise to indicate completion
-		});
-	}
+            if (react && comboboxFilter) {
+                // Open the dropdown list
+                filter.click();
 
-	// Convert NodeList to an array using Array.from()
-	const filterArray = Array.from(filters);
+                // Use a while loop to wait for the dropdown to become available
+                let dropdown = document.querySelector(
+                    ".widget-dropdown-filter-menu-item"
+                );
+                while (!dropdown) {
+                    await new Promise((resolve) => setTimeout(resolve, 1));
+                    dropdown = document.querySelector(
+                        ".widget-dropdown-filter-menu-item"
+                    );
+                }
+                dropdown = dropdown.parentElement;
 
-	const resetPromises = filterArray.map(async (filter) => {
-		await resetFilter(filter);
-	});
+                try {
+                    const multiSelect =
+                        dropdown.querySelector("input") !== null;
 
-	// Wait for all promises to complete before returning
-	await Promise.all(resetPromises);
+                    if (multiSelect) {
+                        // Handle multi-select dropdowns
+                        // Get all checked entries
+                        const checked =
+                            dropdown.querySelectorAll("input[checked]");
 
-	return Promise.resolve();
+                        checked.forEach((check) => {
+                            // Uncheck the entry
+                            check.removeAttribute("checked");
+
+                            if (react) {
+                                check.click({
+                                    preventDefault: function () {},
+                                    stopPropagation: function () {},
+                                });
+                            }
+                        });
+                        // Close the dropdown menu
+                        filter.click();
+                    } else {
+                        // Handle single-select dropdowns
+                        const selected = dropdown.querySelector(
+                            "li[data-selected='true']"
+                        );
+
+                        if (selected) {
+                            selected.click();
+                            const emptyOption =
+                                dropdown.querySelector("li:first-child");
+                            if (emptyOption) {
+                                emptyOption.click();
+                            }
+                        } else {
+                            // if there is no option selected, we still have to close the dropdown
+                            filter.click();
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error during dropdown filter reset:", error);
+                }
+            }
+
+            // Trigger the react onchange event
+            if (react && filter[react].onChange) {
+                filter[react].onChange({ target: filter });
+            }
+
+            resolve();
+        });
+    }
+
+    const filterArray = Array.from(filters);
+
+    const resetPromises = filterArray.map(async (filter) => {
+        await resetFilter(filter);
+    });
+
+    // Wait for all promises to complete before returning
+    await Promise.all(resetPromises);
+
+    return Promise.resolve();
 	// END USER CODE
 }
